@@ -8,8 +8,8 @@
 
 Pod::Spec.new do |s|
   s.name             = 'AppleAudioUnit'
-  s.version          = '0.1.0'
-  s.summary          = 'A short description of AppleAudio.'
+  s.version          = '0.1.1'
+  s.summary          = 'A base implementation of Apple\'s AUAudioUnit to simplify the creation of custom audio units.'
 
 # This description is used to generate tags and improve search results.
 #   * Think: What does it do? Why did you write it? What is the focus?
@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
 #   * Finally, don't worry about the indent, CocoaPods strips it!
 
   s.description      = <<-DESC
-TODO: Add long description of the pod here.
+In order to create an Apple AUv3 audio unit, an AUAudioUnit subclass must be created. The base AUAudioUnit implementation does not work out of the box. These subclasses manage buffers, per event rendering, and parameter states, including ramping.
                        DESC
 
   s.homepage         = 'https://github.com/dave234/AppleAudioUnit'
@@ -29,7 +29,10 @@ TODO: Add long description of the pod here.
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '9.0'
+  s.tvos.deployment_target = '9.0'
+  s.osx.deployment_target = '10.11'
 
+  s.swift_version = '5.0'
   s.source_files = 'AppleAudioUnit/Classes/**/*'
   
   # s.resource_bundles = {

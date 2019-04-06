@@ -1,25 +1,25 @@
 //
-//  AudioUnitNodeCreator.swift
+//  AVAudioUnitCreator.swift
 //  AppleAudioUnit
 //
 //  Created by David O'Neill on 12/15/18.
 //  Copyright © 2018 David O'Neill. All rights reserved.
 //
 
-public class AudioUnitNodeCreator<T: AUAudioUnit> {
+public class AVAudioUnitCreator<T: AUAudioUnit> {
 
     private init(){}
 
-    public enum Result {
-        case success(AVAudioUnit, T)
-        case failure(Error)
+    public struct NodeUnit<T: AUAudioUnit> {
+        public let node: AVAudioUnit // Inherits from AVAudioNode, naming is weak here.
+        public let unit: T
     }
 
     public static func createAsync(description: AudioComponentDescription,
                                    name: String? = nil,
                                    options: AudioComponentInstantiationOptions = [],
                                    version: UInt32 = 1,
-                                   callback: @escaping (Result) -> Void ) {
+                                   callback: @escaping (Result<NodeUnit<T>, Error>) -> Void ) {
 
         AUAudioUnit.registerSubclass(T.self, as: description, name: name ?? NSStringFromClass(T.self), version: version)
         AVAudioUnit.instantiate(with: description, options: options) { (avAudioUnit, error) in
@@ -29,16 +29,16 @@ public class AudioUnitNodeCreator<T: AUAudioUnit> {
                     return callback(.failure(error ?? NSError(domain: "AppleAudioUnit", code: 0,
                                                               userInfo: [NSLocalizedDescriptionKey: "AVAudioUnit.instantiate failed"]) as Error))
             }
-            callback(.success(avAudioUnit, auAudioUnit))
+            callback(.success(NodeUnit(node: avAudioUnit, unit: auAudioUnit)))
         }
     }
 
     public static func create(description: AudioComponentDescription,
                               name: String? = nil,
                               version: UInt32 = 1,
-                              options: AudioComponentInstantiationOptions = []) throws -> (node: AVAudioUnit, audioUnit: T) {
+                              options: AudioComponentInstantiationOptions = []) throws -> NodeUnit<T> {
 
-        var asyncResult: Result?
+        var asyncResult: Result<NodeUnit<T>, Error>?
         let group = DispatchGroup()
         group.enter()
         createAsync(description: description, options: options) { result in
@@ -46,11 +46,11 @@ public class AudioUnitNodeCreator<T: AUAudioUnit> {
             group.leave()
         }
         group.wait()
-        guard let result = asyncResult else { fatalError() }
+        guard let syncResult = asyncResult else { fatalError() }
 
-        switch result {
-        case let .success(node, audioUnit):
-            return (node, audioUnit)
+        switch syncResult {
+        case .success(let nodeUnit):
+            return NodeUnit(node: nodeUnit.node, unit: nodeUnit.unit)
         case let .failure(error):
             throw error
         }

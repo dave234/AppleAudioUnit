@@ -126,19 +126,17 @@ static const int kMaxChannelCount = 16;
                                const AURenderEvent           *realtimeEventListHead,
                                AURenderPullInputBlock        pullInputBlock) {
 
-        int channelCount = outputBufferList->mNumberBuffers;
+        // Stack allocating for inputBufferList with char[], guard against potential stack overflow.
+        assert(outputBufferList->mNumberBuffers <= kMaxChannelCount);
+        char inputBufferListAllocation[bufferListByteSize(outputBufferList->mNumberBuffers)];
+        AudioBufferList *inputBufferList = (AudioBufferList *)inputBufferListAllocation;
 
-        // Guard against potential stack overflow.
-        assert(channelCount <= kMaxChannelCount);
-
-        char inputBufferAllocation[bufferListByteSize(outputBufferList->mNumberBuffers)];
-        AudioBufferList *inputBufferList = NULL;
-        
-        if (welf->_inputBuffer != NULL) {
+        // If hasInput, point to inputBufferList and fill with pullInputBlock().
+        bool hasInput = welf->_inputBuffer != NULL;
+        if (hasInput) {
 
             // Prepare buffer for pull input.
-            inputBufferList = (AudioBufferList *)inputBufferAllocation;
-            bufferListPrepare(inputBufferList, channelCount, frameCount);
+            bufferListPrepare(inputBufferList, outputBufferList->mNumberBuffers, frameCount);
             bufferListPointChannelDataToBuffer(inputBufferList, welf->_inputBuffer);
 
             // Pull input into _inputBuffer.
@@ -158,7 +156,7 @@ static const int kMaxChannelCount = 16;
             bufferListClear(outputBufferList);
         }
 
-        welf->_processEventsBlock(inputBufferList, outputBufferList, timestamp, frameCount, realtimeEventListHead);
+        welf->_processEventsBlock(hasInput ? inputBufferList : NULL, outputBufferList, timestamp, frameCount, realtimeEventListHead);
         return noErr;
     };
 }
